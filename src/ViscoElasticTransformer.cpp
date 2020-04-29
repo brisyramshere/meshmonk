@@ -73,6 +73,12 @@ void ViscoElasticTransformer::_update_smoothing_weights(){
     Then, we multiply that weight with the user inputted flags.
     And lastly, we normalize each row so that the sum of weights for each
     node's neighbours equals 1.0.
+    
+    smoothingWeight[M,N]为每个点到它最近的N个邻域点的权重 
+    1.weight=dist^2
+    2.weight=gaussian(weight)
+    3.weight=flag*weight
+    4.norm(weight,2):使每个点所有邻域点的weight和为1
     */
 
     //# Initialize the smoothing weights as the squared distances to the neighbouring nodes.
@@ -128,8 +134,12 @@ void ViscoElasticTransformer::_update_viscously(){
     1) Determine the force field
     2) Regularize the force field
     3) Add it to the total displacement field
+    
+    1)强制变换场：forcefield=targetCorespondingPos-floatingPos
+    2)每个点迭代调整形变场：每个点的形变场是周围点形变场的加权平均（权值即为上面的smoothingWeigth*_inWeight）
+    3）形变场添加到总形变场上
     */
-
+    
     //# 1) Determine the force field (difference between current floating and corresponding
     //# Features).
     Vec3Mat forceField = _inCorrespondingFeatures->leftCols(3) - _ioFloatingFeatures->leftCols(3);
@@ -174,13 +184,10 @@ void ViscoElasticTransformer::_update_viscously(){
                 // increment the weighted average with current weighted neighbour vector
                 vectorAverage += weight * neighbourVector;
             }
-
             regularizedForceField.row(i) = vectorAverage / sumWeights;
         }
         forceField = regularizedForceField;
     }
-
-
     //# Elastic Part
     //#3) Add the regulated Force Field to the current Displacement Field
     _oldDisplacementField = _displacementField; //save the previous displcament field before overwriting it.
@@ -191,7 +198,10 @@ void ViscoElasticTransformer::_update_viscously(){
 
 
 void ViscoElasticTransformer::_update_elastically(){
-
+    /*
+    对粘性变换得到的形变场_displacementField做加权平均，使形变更加平滑
+    每个点的形变量为周围点形变量的加权求和。
+    */
     //# Get the neighbour indices
     Vec3Mat unregulatedDisplacementField;
     MatDynInt neighbourIndices = _neighbourFinder.get_indices();
@@ -234,7 +244,17 @@ void ViscoElasticTransformer::_update_outlier_transformation(){
     //# The transformation for the outliers is updated via a diffusion process.
     //## The transformation field for inliers is kept the same, but diffuses into
     //## outlier areas via diffusion.
+    //## inlier点的形变，通过扩散的方式，迭代的扩散到outlier区域
+    /*
+    算法逻辑：
+    1.inlier点直接跳过
+    2.outlier点：新形变量=inlierWeight*（旧形变量）+（1-inlierWeight）*（邻域点形变量加权平均）
+    迭代使用上述公式进行更新
 
+    以上迭代扩散满足以下规律：
+    inlier程度越大，越趋于依从原始形变量
+    outlier程度越大，则越趋于依从邻域点的形变量
+    */
     //# Get the neighbour indices
     Vec3Mat temporaryDisplacementField;
     MatDynInt neighbourIndices = _neighbourFinder.get_indices();
@@ -284,6 +304,11 @@ void ViscoElasticTransformer::_update_outlier_transformation(){
 
 //## Function to update the transformation
 void ViscoElasticTransformer::_update_transformation(){
+    /*
+    1.粘性变换得到粘性形变场（直接计算点对形变场，然后形变场迭代平滑）
+    2.对粘性形变场施加弹性变换（对形变场迭代平滑）
+    3.inlier点的变换扩散到outlier点
+    */
     _update_viscously();
     _update_elastically();
     _update_outlier_transformation();

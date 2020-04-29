@@ -72,9 +72,9 @@ class ViscoElasticTransformer
         void _update_neighbours();
         //## Update the weights used for smoothing
         void _update_smoothing_weights();
-        //## Update the displacement field in a viscous manner
+        //## Update the displacement field in a viscous manner  粘性行为
         void _update_viscously();
-        //## Update the displacement field in an elastic manner
+        //## Update the displacement field in an elastic manner  弹性行为
         void _update_elastically();
         //## Update the transformation for any outliers (via a diffusion process)
         void _update_outlier_transformation();

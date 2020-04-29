@@ -110,14 +110,14 @@ void NonrigidRegistration::update(){
     for (size_t iteration = 0 ; iteration < _numIterations ; iteration++) {
         timePreIteration = time(0);
 
-        //# Anneal parameters
+        //# Anneal parameters  退火参数
         _numViscousIterations = int(std::round(_numViscousIterationsStart * std::pow(_viscousAnnealingRate, iteration)));
         if (_numViscousIterations < _numViscousIterationsEnd) { _numViscousIterations = _numViscousIterationsEnd;}
         _numElasticIterations = int(std::round(_numElasticIterationsStart * std::pow(_elasticAnnealingRate, iteration)));
         if (_numElasticIterations < _numElasticIterationsEnd) { _numElasticIterations = _numElasticIterationsEnd;}
 
 
-        //# Correspondences
+        //# Correspondences  
         correspondenceFilter->set_floating_input(_ioFloatingFeatures, _inFloatingFlags);
         correspondenceFilter->set_target_input(_inTargetFeatures, _inTargetFlags);
         correspondenceFilter->update();

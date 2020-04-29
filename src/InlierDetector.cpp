@@ -29,7 +29,7 @@ void InlierDetector::set_parameters(const float kappa, const bool useOrientation
 
 void InlierDetector::_determine_neighbours(){
     Vec3Mat floatingPositions = _inFeatures->leftCols(3);
-    _neighbourFinder.set_source_points(&floatingPositions);
+    _neighbourFinder.set_source_points(&floatingPositions);//点集和点集自己使用flann算法寻找邻近点
     _neighbourFinder.set_queried_points(&floatingPositions);
     _neighbourFinder.set_parameters(_numNeighbours);
     _neighbourFinder.update();
@@ -40,8 +40,11 @@ void InlierDetector::_update_smoothing_weights(){
     /*
     The smoothing weights are the weights assigned to each vertex neighbour which
     will be used during the smoothing of the inlier weights.
+    平滑权重对应到每一个顶点的邻接点，用于对inlier weights做平滑。
 
     The weight is based on the inverse of the squared distance to each neighbour.
+    权重与顶点到邻接点的距离的平方成反比。
+
     */
 
     //# Initialize the weights matrix (we'll overwrite these values later)
@@ -80,7 +83,7 @@ void InlierDetector::_update_smoothing_weights(){
 
 
 void InlierDetector::_smooth_inlier_weights(){
-    //# Get the neighbour indices
+    //# Get the neighbour indices 获取邻接点的索引
     VecDynFloat tempInlierWeights;
     MatDynInt neighbourIndices = _neighbourFinder.get_indices();
 
@@ -97,7 +100,7 @@ void InlierDetector::_smooth_inlier_weights(){
             float sumSmoothingWeights = 0.0f;
             for (size_t j = 0 ; j < _numNeighbours ; j++) {
                 // get neighbour index
-                size_t neighbourIndex = neighbourIndices(i,j);
+                size_t neighbourIndex = neighbourIndices(i,j);  //第i个点的第j个邻接点的索引
                 // get neighbour smoothing weight and inlier weight
                 const float smoothingWeight = _smoothingWeights(i,j); //inlier weight is already incorporated in the smoothing weight.
                 neighbourInlierWeight = tempInlierWeights(neighbourIndex);
@@ -113,7 +116,7 @@ void InlierDetector::_smooth_inlier_weights(){
         }
 
         //# Multiply the resulting inlier weights with the deterministic corresponding flags again!
-        (*_ioProbability) *= (*_inCorrespondingFlags);
+        (*_ioProbability) *= (*_inCorrespondingFlags);//对应位相乘？
     }
 }//end _smooth_inlier_weights()
 
